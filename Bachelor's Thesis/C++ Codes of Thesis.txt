@@ -1,0 +1,196 @@
+7.1 Programming code for WGL method
+// -----------------------------------------------
+// Image loading
+// -----------------------------------------------
+ARRAY< ARRAY2D<double> > P;
+load_images(IMNUM, P); // image loading function
+// -----------------------------------------------
+// Sigma calculation
+// -----------------------------------------------
+ARRAY  <double>   SIGMA(IMNUM);
+ARRAY2D<double>  WEIGHT(IMNUM,IMNUM);
+ARRAY <double> resultSIG(IMNUM);
+for(int i=0;i<IMNUM;i++)
+{	ARRAY<int> ngbdSet;
+	SIGMA[i] = sigma(P,i,10,ngbdSet);//sigma calculation function }
+
+for (int i = 0; i < IMNUM; i++) 	
+	for (int j = 0; j < IMNUM; j++)
+		WEIGHT[i][j] = weight(P, SIGMA, i, j); //weight calculation function
+
+// -----------------------------------------------
+// loading sample img for test 
+// -----------------------------------------------
+ARRAY< double > U(IMNUM); U=0;
+for (int i = 0; i < SAMPLE; i++)  U[i] = ((i/(SAMPLE / DIGIT))+1) % 10 ;
+for (int i = SAMPLE; i < IMNUM; i++) U[i] = (((i - SAMPLE) / ((IMNUM-SAMPLE)/ DIGIT)) + 1) % 10;
+
+//-------------------------------------------------
+// create A,b
+//-------------------------------------------------
+ARRAY2D<double> A(IMNUM - SAMPLE,IMNUM - SAMPLE); A=0;
+ARRAY  <double> b(IMNUM - SAMPLE); b=0;
+double r = IMNUM / SAMPLE + 1;
+
+for (int m = 0; m < IMNUM - SAMPLE; m++)
+{
+	// A 대각원소
+	for (int n = 0; n< SAMPLE; n++)
+		A[m][m] = A[m][m] + r * WEIGHT[m][n];
+
+	for (int n = SAMPLE; n< IMNUM; n++)
+		A[m][m] = A[m][m] + 2 * WEIGHT[m + SAMPLE][n];
+
+	// A 그 외 원소
+	for (int n = 0; n < IMNUM - SAMPLE; n++)
+	{
+		if (m != n)
+			A[m][n] = A[m][n] - 2 * WEIGHT[m + SAMPLE][n + SAMPLE];
+	}
+
+	//b
+	for (int n = 0; n < SAMPLE; n++)
+		b[m] = b[m] + r * WEIGHT[m + SAMPLE][n] * U[n];
+	}
+
+//-------------------------------------------------
+// solve AX=B by CG
+//-------------------------------------------------
+ARRAY<double> X;
+X = ConjugatGradient(A,b); // function solving AX=B by Conjugated Gradient method
+X.print("U"); // Result of digit regocnition
+
+
+7.2 Programming code for WGL method (except declaration part)
+//----------------------------------------------------------------------
+// load Image
+//----------------------------------------------------------------------
+oad_sample(IMG);
+
+//----------------------------------------------------------------------
+// Calculatin U
+//----------------------------------------------------------------------
+initialize3D(U);
+{
+	ARRAY2D<double> u(W*H, W*H);
+	ARRAY2D<double> w(SAMNUM, SAMNUM);
+	ARRAY<double> lambda(SAMNUM);
+
+	ARRAY<double> dist(SAMNUM);
+	ARRAY2D<double> vw(SAMNUM, SAMNUM);
+	ARRAY2D<double> Residual(SAMNUM, SAMNUM);
+	double dist_fin;
+	double temp;
+
+	for (int d = 0; d < DIGIT; d++) { // DIGIT LOOP START
+
+		A = IMG[d];
+		At = t(A);
+
+		//----------------------------------------------------------------------
+		// initial random V
+		//----------------------------------------------------------------------
+		dist_fin = 0;
+
+		for (int k = 0; k < SAMNUM; k++)
+			for (int j = 0; j < SAMNUM; j++)
+				V[k][j] = ((double)rand()) / RAND_MAX;
+
+
+		//----------------------------------------------------------------------
+		// power method - calculating V, w
+		//----------------------------------------------------------------------
+
+		vw = initialize(vw, 0);
+		temp = 0;
+
+
+		for (int k = 0; k < SAMNUM; k++) dist[k] = 1E8;
+		do {
+
+			for (int k = 0; k < SAMNUM; k++) ArrInsert(w, k, multi1D(At, multi1D(A, creVector(V, k))));
+
+			for (int k = 0; k < (SAMNUM - 1); k++) {
+				for (int j = k + 1; j < SAMNUM; j++) {
+					vw[k][j] = ip1D(creVector(w, j), creVector(V, k));
+				}
+			}
+
+			for (int j = 1; j < SAMNUM; j++) {
+				for (int k = 0; k < j; k++) {
+					for (int l = 0; l < SAMNUM; l++) 	w[l][j] -= vw[k][j] * V[l][k];
+				}
+			}
+
+			for (int k = 0; k < SAMNUM; k++) {
+				lambda[k] = ip1D(creVector(w, k), creVector(V, k));
+				if (lambda[k] < 0) lambda[k] = abs(lambda[k]);
+			}
+
+			for (int k = 0; k < SAMNUM; k++) for (int j = 0; j < SAMNUM; j++) Residual[j][k] = w[j][k] - lambda[k] * V[j][k];
+			for (int k = 0; k < SAMNUM; k++) dist[k] = norm(Residual, k);
+
+			dist_fin = ArrSum(dist);
+
+			V = w;
+			for (int k = 0; k < SAMNUM; k++) {
+				temp = norm(V, k);
+				for (int j = 0; j < SAMNUM; j++) 	V[j][k] /= temp;
+			}
+
+		} while (dist_fin >(1E-8));
+
+		//----------------------------------------------------------------------
+		// making D with lambda
+		//---------------------------------------------------------------------
+		D = initialize(D, 0);
+		for (int k = 0; k < SAMNUM; k++)	D[k][k] = sqrt(lambda[k]);
+
+
+		//----------------------------------------------------------------------
+		// making U with lambda and V
+		//----------------------------------------------------------------------
+
+		u = initialize(u, 0);
+
+		for (int j = 0; j < SAMNUM; j++) {
+			for (int k = 0; k < W*H; k++) {
+				u[k][j] = (1 / D[j][j])*multi1D(A, creVector(V, j))[k];
+			}
+		}
+		U[d] = u;
+
+	} // DIGIT LOOP END
+
+
+}
+
+////======================================
+////4. test img load
+////======================================
+
+int true_index;
+int min_digit;
+int temp = 0;
+
+ARRAY<double> res(W*H);
+ARRAY<double> res_digit(DIGIT);
+
+for (int d = 1; d <= TEST; d++) { // TEST = 600
+
+	true_index = ((d / 10) % 10);
+	Z = load_testimg(d);
+
+	for (int n = 0; n<DIGIT; n++) {
+		for (int i = 0; i<W*H; i++) {
+			res[i] = Z[i];
+			for (int j = 0; j<BASISNUM; j++)
+				for (int k = 0; k<W*H; k++)
+					res[i] -= U[n][i][j] * U[n][k][j] * Z[k];
+		}
+
+	}
+	min_digit = arr_min(res_digit);
+	if (true_index == (min_digit + 1)) temp++;
+}
+printf("\n Caculation Finished. %d images out of %d test img are correctly recognized.", TEST, temp);
