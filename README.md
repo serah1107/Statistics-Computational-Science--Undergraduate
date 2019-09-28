@@ -8,4 +8,4 @@
 >2. Computational Science (about Image Processing, Computational Skills, DataBase and so on.) 
 
 >### Bachelor's Thesis
->[MNIST Classification using Weighted Graph Laplacian and SVD with Hye Mee, Sohn, Yu Jin, Jung](https://github.com/serah1107/Statistics-Computational-Science--Undergraduate/tree/master/Bachelor's%20Thesis)
+>[MNIST Classification using Weighted Graph Laplacian and SVD with Hye Mee Sohn, Yu Jin Jung](https://github.com/serah1107/Statistics-Computational-Science--Undergraduate/tree/master/Bachelor's%20Thesis)
